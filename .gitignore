@@ -108,3 +108,9 @@ example/__pycache__/
 example/data/*.csv
 example/output/*.csv
 yellowfin.py
+.DS_Store
+*.pred
+*.keys
+*.pickle
+*.sh
+data
