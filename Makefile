@@ -3,9 +3,11 @@ all:
 	time python test.py --dataset last_fr_en --iter 20 --deep --fm
 
 dummy:
-	time python test.py --dataset dummy --iter 100 --fm
-	time python test.py --dataset dummy --iter 100 --deep
-	time python test.py --dataset dummy --iter 100 --deep --fm
+	mkdir -p data/dummy
+	python dummy.py
+	time python test.py --dataset dummy --iter 1000 --rate 0.001 --batch 4 --deep --fm
+	# time python test.py --dataset dummy --iter 100 --deep
+	# time python test.py --dataset dummy --iter 100 --deep --fm
 
 easy:
 	time python test.py --dataset listen_fr_en --iter 10 --fm
@@ -13,19 +15,20 @@ easy:
 	time python test.py --dataset listen_fr_en --iter 10 --deep --fm
 
 pull:
-	scp raiden:deepfm/data/last_fr_en/*.txt data/last_fr_en
-	scp raiden:deepfm/data/last_es_en/*.txt data/last_es_en
-	scp raiden:deepfm/data/last_en_es/*.txt data/last_en_es
+	scp raiden:deepfm/data/last_fr_en/y_pred* data/last_fr_en
+	scp raiden:deepfm/data/last_es_en/y_pred* data/last_es_en
+	scp raiden:deepfm/data/last_en_es/y_pred* data/last_en_es
 
 push:
 	rsync -avz --progress --partial test.py data *_*sh raiden:deepfm
 
 bash:
-	python makesh.py
-	python makesh.py --iter 200
+	python makesh.py --dataset fr_en
+	python makesh.py --dataset es_en
+	python makesh.py --dataset en_es
 
 clean:
-	rm data/dummy/*
+	rm -r data/dummy
 
 # awk command for posterity
 # awk -F "\"*,\"*" '{print $3}' data/fren/train.csv > data/fren/y_train.csv  # 10 if fr_en

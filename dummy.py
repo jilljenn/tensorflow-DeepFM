@@ -2,8 +2,8 @@ import numpy as np
 
 
 N = 100
-X_user = np.random.randint(0, 2, size=(N, 1))
-X_item = np.random.randint(2, 5, size=(N, 1))
+X_user = np.random.randint(0, 20, size=(N, 1))
+X_item = np.random.randint(20, 50, size=(N, 1))
 y = np.random.randint(0, 2, size=(N,))
 Xi = np.column_stack((X_user, X_item))
 Xv = np.ones((N, 2))

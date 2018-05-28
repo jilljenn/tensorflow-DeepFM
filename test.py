@@ -12,14 +12,14 @@ import time
 start = time.time()
 parser = argparse.ArgumentParser(description='Run DeepFM')
 parser.add_argument('--dataset', type=str, nargs='?', default='/home/jj/deepfm/data/last_fr_en')
-parser.add_argument('--iter', type=int, nargs='?', default=50)
+parser.add_argument('--iter', type=int, nargs='?', default=1000)
 parser.add_argument('--fm', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--deep', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--d', type=int, nargs='?', default=20)
 parser.add_argument('--nb_layers', type=int, nargs='?', default=2)
 parser.add_argument('--nb_neurons', type=int, nargs='?', default=50)
 parser.add_argument('--batch', type=int, nargs='?', default=128)
-parser.add_argument('--rate', type=float, nargs='?', default=0.01)
+parser.add_argument('--rate', type=float, nargs='?', default=0.001)
 options = parser.parse_args()
 
 
@@ -30,10 +30,12 @@ start = time.time()
 
 Xi_train = list(np.load('Xi_train.npy'))
 Xv_train = list(np.load('Xv_train.npy'))
+train_samples = len(Xi_train)
 y_train = list(np.load('y_train.npy').astype(np.int32))
 
 Xi_valid = list(np.load('Xi_valid.npy'))
 Xv_valid = list(np.load('Xv_valid.npy'))
+valid_samples = len(Xi_valid)
 y_valid = list(np.load('y_valid.npy').astype(np.int32))
 
 Xi_test = list(np.load('Xi_test.npy'))
@@ -50,7 +52,7 @@ dfm_params = {
     "use_fm": options.fm,
     "use_deep": options.deep,
     "embedding_size": options.d,
-    "dropout_fm": [1.0, 1.0],
+    "dropout_fm": [1.0] * 2,
     "deep_layers": [options.nb_neurons] * options.nb_layers,
     "dropout_deep": [0.6] * (options.nb_layers + 1),
     "deep_layers_activation": tf.nn.relu,
@@ -79,6 +81,7 @@ print('refit done')
 auc_train = dfm.evaluate(Xi_train, Xv_train, y_train)
 auc_valid = dfm.evaluate(Xi_valid, Xv_valid, y_valid)
 print('train auc={:f} valid auc={:f}'.format(auc_train, auc_valid))
+finished_at_epoch = len(vars(dfm)['train_result'])
 
 # save config
 del dfm_params['deep_layers_activation']
@@ -86,9 +89,10 @@ del dfm_params['eval_metric']
 config = {
     'args': vars(options),
     'dfm_params': dfm_params,
+    'finished_at_epoch': finished_at_epoch,
     'metrics': {
-        'samples_train': len(Xi_train),
-        'samples_valid': len(Xi_valid),
+        'samples_train': train_samples,
+        'samples_valid': valid_samples,
         'samples_test': len(Xi_test),
         'auc_train': float(auc_train),
         'auc_valid': float(auc_valid),
