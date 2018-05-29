@@ -7,7 +7,7 @@ PATH = '/home/jj/deepfm'
 
 parser = argparse.ArgumentParser(description='Make bash script')
 parser.add_argument('--dataset', type=str, nargs='?', default='fr_en')
-parser.add_argument('--fm_iter', type=int, nargs='?', default=100)
+parser.add_argument('--fm_iter', type=int, nargs='?', default=500)
 parser.add_argument('--iter', type=int, nargs='?', default=1000)
 parser.add_argument('--d', type=int, nargs='?', default=20)
 parser.add_argument('--rate', type=float, nargs='?', default=0.001)
@@ -27,5 +27,5 @@ with open('template.sh') as f:
         'prefix': prefix
     })
 
-with open('{:s}.sh'.format(prefix), 'w') as f:
+with open('run{:s}.sh'.format(prefix), 'w') as f:
     f.write(bash)
