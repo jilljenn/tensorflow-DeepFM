@@ -12,6 +12,7 @@ import time
 
 
 os.environ['LIBFM_PATH'] = '/Users/jilljenn/code/libfm/bin/'
+TRUTH_PATH = '/Users/jilljenn/code/sharedtask/'
 
 start = time.time()
 parser = argparse.ArgumentParser(description='Run FM')
@@ -19,12 +20,11 @@ parser.add_argument('--dataset', type=str, nargs='?', default='last_fr_en')
 parser.add_argument('--iter', type=int, nargs='?', default=50)
 parser.add_argument('--logistic', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--d', type=int, nargs='?', default=20)
-parser.add_argument('--batch', type=int, nargs='?', default=128)
-parser.add_argument('--rate', type=float, nargs='?', default=0.001)
 options = parser.parse_args()
 
 
 print('Dataset', options.dataset, time.time() - start)
+dataset_key = options.dataset[5:]
 ckpt = time.time()
 os.chdir(os.path.join('data', options.dataset))  # Move to dataset folder
 start = time.time()
@@ -67,7 +67,8 @@ else:
     X_fulltrain = vstack((X_train, X_valid))
     y_fulltrain = np.concatenate((y_train, y_valid))
 
-    df = pd.read_csv('/Users/jilljenn/code/sharedtask/data_fr_en/fr_en.slam.20171218.test.key', sep=' ', names=('key', 'outcome'))
+    df = pd.read_csv(os.path.join(TRUTH_PATH, 'data_{:s}/{:s}.slam.20171218.test.key'.format(dataset_key, dataset_key)),
+                     sep=' ', names=('key', 'outcome'))
     y_test = 1 - df['outcome']
 
 # nb_features = (1 + np.array(Xi_train + Xi_valid).max(axis=0)).sum()  # Old, bad version

@@ -20,7 +20,7 @@ pull:
 	scp raiden:deepfm/data/last_en_es/y_pred* data/last_en_es
 
 push:
-	rsync -avz --progress --partial dfm.py data *_*sh raiden:deepfm
+	rsync -avz --progress --partial fm.py dfm.py data *_*sh raiden:deepfm
 
 bash:
 	python makesh.py --dataset fr_en

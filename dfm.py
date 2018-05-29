@@ -9,6 +9,8 @@ import json
 import time
 
 
+TRUTH_PATH = '/Users/jilljenn/code/sharedtask/'
+
 start = time.time()
 parser = argparse.ArgumentParser(description='Run DeepFM')
 parser.add_argument('--dataset', type=str, nargs='?', default='/home/jj/deepfm/data/last_fr_en')
@@ -24,6 +26,7 @@ options = parser.parse_args()
 
 
 print('Dataset', options.dataset, time.time() - start)
+dataset_key = options.dataset[5:]
 os.chdir(os.path.join('data', options.dataset))  # Move to dataset folder
 start = time.time()
 
@@ -40,6 +43,12 @@ y_valid = list(np.load('y_valid.npy').astype(np.int32))
 
 Xi_test = list(np.load('Xi_test.npy'))
 Xv_test = list(np.load('Xv_test.npy'))
+if options.dataset == 'dummy':
+    y_test = [1] * (len(Xi_test) - 1) + [0]
+else:
+    df = pd.read_csv(os.path.join(TRUTH_PATH, 'data_{:s}/{:s}.slam.20171218.test.key'.format(dataset_key, dataset_key)),
+                     sep=' ', names=('key', 'outcome'))
+    y_test = 1 - df['outcome']
 
 nb_fields = len(Xi_train[0])
 
@@ -80,7 +89,8 @@ print('refit done')
 # evaluate a trained model
 auc_train = dfm.evaluate(Xi_train, Xv_train, y_train)
 auc_valid = dfm.evaluate(Xi_valid, Xv_valid, y_valid)
-print('train auc={:f} valid auc={:f}'.format(auc_train, auc_valid))
+auc_test = dfm.evaluate(Xi_test, Xv_test, y_test)
+print('train auc={:f} valid auc={:f} test auc={:f}'.format(auc_train, auc_valid, auc_test))
 finished_at_epoch = len(vars(dfm)['train_result'])
 
 # save config
@@ -96,13 +106,14 @@ config = {
         'samples_test': len(Xi_test),
         'auc_train': float(auc_train),
         'auc_valid': float(auc_valid),
+        'auc_test': float(auc_test),
     }
 }
 print(config)
 
 # make prediction on test
 y_pred = dfm.predict(Xi_test, Xv_test)
-with open('y_pred-{:.3f}-{:.3f}.txt'.format(auc_train, auc_valid), 'w') as f:
+with open('y_pred-{:.3f}-{:.3f}-{:.3f}.txt'.format(auc_train, auc_valid, auc_test), 'w') as f:
     f.write('\n'.join(map(str, y_pred)))
-with open('y_pred-{:.3f}-{:.3f}.config.json'.format(auc_train, auc_valid), 'w') as f:
+with open('y_pred-{:.3f}-{:.3f}-{:.3f}.config.json'.format(auc_train, auc_valid, auc_test), 'w') as f:
     f.write(json.dumps(config, indent=4))
