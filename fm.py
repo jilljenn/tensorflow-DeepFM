@@ -1,6 +1,5 @@
 from scipy.sparse import coo_matrix, vstack
 from sklearn.linear_model import LogisticRegression
-import tensorflow as tf
 import numpy as np
 import pandas as pd
 import pywFM
@@ -11,20 +10,21 @@ import json
 import time
 
 
-os.environ['LIBFM_PATH'] = '/Users/jilljenn/code/libfm/bin/'
-TRUTH_PATH = '/Users/jilljenn/code/sharedtask/'
-
 start = time.time()
 parser = argparse.ArgumentParser(description='Run FM')
+parser.add_argument('--base_dir', type=str, nargs='?', default='/home/jj')  # /Users/jilljenn
+parser.add_argument('--truth_path', type=str, nargs='?', default='dataverse_files')  # code/sharedtask
+parser.add_argument('--logistic', type=bool, nargs='?', const=True, default=False)
+parser.add_argument('--libfm', type=str, nargs='?', default='libfm')  # code/libfm
 parser.add_argument('--dataset', type=str, nargs='?', default='last_fr_en')
 parser.add_argument('--iter', type=int, nargs='?', default=50)
-parser.add_argument('--logistic', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--d', type=int, nargs='?', default=20)
 options = parser.parse_args()
 
+os.environ['LIBFM_PATH'] = os.path.join(options.base_dir, options.libfm, 'bin')
 
 print('Dataset', options.dataset, time.time() - start)
-dataset_key = options.dataset[5:]
+dataset_key = options.dataset[-5:]
 ckpt = time.time()
 os.chdir(os.path.join('data', options.dataset))  # Move to dataset folder
 start = time.time()
@@ -67,7 +67,7 @@ else:
     X_fulltrain = vstack((X_train, X_valid))
     y_fulltrain = np.concatenate((y_train, y_valid))
 
-    df = pd.read_csv(os.path.join(TRUTH_PATH, 'data_{:s}/{:s}.slam.20171218.test.key'.format(dataset_key, dataset_key)),
+    df = pd.read_csv(os.path.join(options.base_dir, options.truth_path, 'data_{:s}/{:s}.slam.20171218.test.key'.format(dataset_key, dataset_key)),
                      sep=' ', names=('key', 'outcome'))
     y_test = 1 - df['outcome']
 
@@ -122,7 +122,7 @@ config = {
 print(config)
 
 # make prediction on test
-with open('y_pred-0-{:.3f}.txt'.format(auc_test), 'w') as f:
+with open('y_pred-0-0-{:.3f}.txt'.format(auc_test), 'w') as f:
     f.write('\n'.join(map(str, y_pred_test)))
-with open('y_pred-0-{:.3f}.config.json'.format(auc_test), 'w') as f:
+with open('y_pred-0-0-{:.3f}.config.json'.format(auc_test), 'w') as f:
     f.write(json.dumps(config, indent=4))

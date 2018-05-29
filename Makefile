@@ -5,6 +5,8 @@ all:
 dummy:
 	mkdir -p data/dummy
 	python dummy.py
+	time python fm.py --dataset dummy --logistic
+	time python fm.py --dataset dummy
 	time python dfm.py --dataset dummy --iter 1000 --rate 0.001 --batch 4 --deep --fm
 	# time python dfm.py --dataset dummy --iter 100 --deep
 	# time python dfm.py --dataset dummy --iter 100 --deep --fm
@@ -20,7 +22,7 @@ pull:
 	scp raiden:deepfm/data/last_en_es/y_pred* data/last_en_es
 
 push:
-	rsync -avz --progress --partial fm.py dfm.py data *_*sh raiden:deepfm
+	rsync -avz --progress --partial requirements.txt Makefile fm.py dfm.py data *_*sh raiden:deepfm
 
 bash:
 	python makesh.py --dataset fr_en

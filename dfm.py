@@ -9,24 +9,24 @@ import json
 import time
 
 
-TRUTH_PATH = '/Users/jilljenn/code/sharedtask/'
-
 start = time.time()
 parser = argparse.ArgumentParser(description='Run DeepFM')
+parser.add_argument('--base_dir', type=str, nargs='?', default='/home/jj')  # /Users/jilljenn
+parser.add_argument('--truth_path', type=str, nargs='?', default='dataverse_files')  # code/sharedtask
 parser.add_argument('--dataset', type=str, nargs='?', default='/home/jj/deepfm/data/last_fr_en')
 parser.add_argument('--iter', type=int, nargs='?', default=1000)
 parser.add_argument('--fm', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--deep', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--d', type=int, nargs='?', default=20)
 parser.add_argument('--nb_layers', type=int, nargs='?', default=2)
-parser.add_argument('--nb_neurons', type=int, nargs='?', default=50)
+parser.add_argument('--nb_neurons', type=int, nargs='?', default=32)
 parser.add_argument('--batch', type=int, nargs='?', default=128)
 parser.add_argument('--rate', type=float, nargs='?', default=0.001)
 options = parser.parse_args()
 
 
 print('Dataset', options.dataset, time.time() - start)
-dataset_key = options.dataset[5:]
+dataset_key = options.dataset[-5:]
 os.chdir(os.path.join('data', options.dataset))  # Move to dataset folder
 start = time.time()
 
@@ -46,7 +46,7 @@ Xv_test = list(np.load('Xv_test.npy'))
 if options.dataset == 'dummy':
     y_test = [1] * (len(Xi_test) - 1) + [0]
 else:
-    df = pd.read_csv(os.path.join(TRUTH_PATH, 'data_{:s}/{:s}.slam.20171218.test.key'.format(dataset_key, dataset_key)),
+    df = pd.read_csv(os.path.join(options.base_dir, options.truth_path, 'data_{:s}/{:s}.slam.20171218.test.key'.format(dataset_key, dataset_key)),
                      sep=' ', names=('key', 'outcome'))
     y_test = 1 - df['outcome']
 
@@ -63,7 +63,7 @@ dfm_params = {
     "embedding_size": options.d,
     "dropout_fm": [1.0] * 2,
     "deep_layers": [options.nb_neurons] * options.nb_layers,
-    "dropout_deep": [0.6] * (options.nb_layers + 1),
+    "dropout_deep": [0.5] * (options.nb_layers + 1),
     "deep_layers_activation": tf.nn.relu,
     "epoch": options.iter,
     "batch_size": options.batch,
