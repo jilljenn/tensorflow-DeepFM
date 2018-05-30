@@ -27,9 +27,11 @@ for filename in glob.glob('data/*/*-*-*-*.json'):
         'test_auc': result['metrics']['auc_test'],
         'epoch': '{:d}/{:d}'.format(result.get('finished_at_epoch', result['args']['iter']), result['args']['iter']),
         'dataset': dataset,
+        'data': dataset[-5:],
         'd': 0 if is_lr else result['args']['d'],
         'model': model
     })
-df = pd.DataFrame.from_dict(results).sort_values(by=['dataset', 'test_auc'], ascending=[True, False])
-df.to_latex('results.tex')
+df = pd.DataFrame.from_dict(results).sort_values(by=['data', 'test_auc'], ascending=[True, False]).round(3).fillna('--').reset_index()
+for data in df['data'].unique():
+    df.query('data == @data')[['dataset', 'model', 'd', 'epoch', 'train_auc', 'test_auc']].to_latex('results-{:s}.tex'.format(data), index=False)
 print(df)
