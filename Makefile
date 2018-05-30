@@ -17,9 +17,9 @@ easy:
 	time python dfm.py --dataset listen_fr_en --iter 10 --deep --fm
 
 pull:
-	scp raiden:deepfm/data/last_fr_en/y_pred* data/last_fr_en
-	scp raiden:deepfm/data/last_es_en/y_pred* data/last_es_en
-	scp raiden:deepfm/data/last_en_es/y_pred* data/last_en_es
+	rsync -avz raiden:deepfm/data/last_fr_en/y_pred* data/last_fr_en
+	rsync -avz raiden:deepfm/data/last_es_en/y_pred* data/last_es_en
+	rsync -avz raiden:deepfm/data/last_en_es/y_pred* data/last_en_es
 
 push:
 	rsync -avz --progress --partial requirements.txt Makefile fm.py dfm.py data *_*sh raiden:deepfm
