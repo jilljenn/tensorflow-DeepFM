@@ -23,17 +23,18 @@ for filename in glob.glob('data/*/*-*-*-*.json'):
         model = 'Deep'
     else:
         model = 'DeepFM'
+    features = dataset[:dataset.index('_')]
     results.append({
-        'train_auc': result['metrics'].get('auc_train'),
+        'train': result['metrics'].get('auc_train'),
         'test_auc': result['metrics']['auc_test'],
         'epoch': '{:d}/{:d}'.format(result.get('finished_at_epoch', result['args']['iter']), result['args']['iter']),
-        'dataset': dataset[:dataset.index('_')],
-        'data': dataset[-5:],
-        'd': 0 if is_lr else result['args']['d'],
-        'model': model
+        'dataset': features,
+        'data': dataset[-5:-3],
+        '$d$': 0 if is_lr else result['args']['d'],
+        'model': model,
+        features: result['metrics']['auc_test']
     })
-df = pd.DataFrame.from_dict(results).sort_values(by=['data', 'test_auc'], ascending=[True, False]).round(3).reset_index()
-df['first'] = np.where(df['dataset'] == 'first', df['test_auc'], None)
+df = pd.DataFrame.from_dict(results).sort_values(by=['data', 'test_auc'], ascending=[True, False]).round(3).reset_index(drop=True).fillna('--')
 for data in df['data'].unique():
-    df.query('data == @data')[['dataset', 'model', 'd', 'epoch', 'train_auc', 'test_auc', 'first']].to_latex('results-{:s}.tex'.format(data), index=False)
-print(df.fillna('--'))
+    df.query('data == @data')[['data', 'model', '$d$', 'epoch', 'train', 'first', 'last', 'pfa']].to_latex('results-{:s}.tex'.format(data), index=False, escape=False, column_format='c' * 8)
+print(df)
