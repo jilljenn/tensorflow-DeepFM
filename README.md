@@ -2,7 +2,9 @@
 
 This project includes a Tensorflow implementation of DeepFM [1].
 
-We tried it on the [Duolingo dataset](http://sharedtask.duolingo.com) and [found](https://arxiv.org/abs/1805.00356) that the [libFM MCMC implementation of FM](http://www.libfm.org) had better performance than DeepFM:
+We tried it on the [Duolingo dataset](http://sharedtask.duolingo.com) and found that the [libFM MCMC implementation of FM](http://www.libfm.org) had better performance than DeepFM.
+
+See our article [**Deep Factorization Machines for Knowledge Tracing**](https://arxiv.org/abs/1805.00356) (also our [poster](https://github.com/jilljenn/ktm/blob/master/poster/dfm-kt-poster.pdf)) featured at the BEA workshop of NAACL-HLT 2018.
 
     @inproceedings{Vie2018duolingo,
         Author = {{Vie}, Jill-J{\^e}nn},
@@ -10,7 +12,7 @@ We tried it on the [Duolingo dataset](http://sharedtask.duolingo.com) and [found
         Hyphenation = {english},
         Keywords = {Computer Science - Information Retrieval, Computer Science - Learning, Statistics - Machine Learning, knowledge tracing, factorization machines, second language acquisition modeling},
         Title = {{Deep Factorization Machines for Knowledge Tracing}},
-        Url = {[https://arxiv.org/abs/1805.00356](https://arxiv.org/abs/1805.00356)},
+        Url = {https://arxiv.org/abs/1805.00356},
         Year = 2018}
 
 # Usage
