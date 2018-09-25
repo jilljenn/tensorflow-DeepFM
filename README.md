@@ -2,6 +2,17 @@
 
 This project includes a Tensorflow implementation of DeepFM [1].
 
+We tried it on the [Duolingo dataset](http://sharedtask.duolingo.com) and [found](https://arxiv.org/abs/1805.00356) that the [libFM MCMC implementation of FM](http://www.libfm.org) had better performance than DeepFM:
+
+    @inproceedings{Vie2018duolingo,
+        Author = {{Vie}, Jill-J{\^e}nn},
+        Booktitle = {{The 13th Workshop on Innovative Use of NLP for Building Educational Applications}},
+        Hyphenation = {english},
+        Keywords = {Computer Science - Information Retrieval, Computer Science - Learning, Statistics - Machine Learning, knowledge tracing, factorization machines, second language acquisition modeling},
+        Title = {{Deep Factorization Machines for Knowledge Tracing}},
+        Url = {[https://arxiv.org/abs/1805.00356](https://arxiv.org/abs/1805.00356)},
+        Year = 2018}
+
 # Usage
 ## Input Format
 This implementation requires the input data in the following format:

@@ -1,4 +1,4 @@
-from scipy.sparse import coo_matrix, vstack
+from scipy.sparse import coo_matrix, vstack, save_npz
 from sklearn.linear_model import LogisticRegression
 import numpy as np
 import pandas as pd
@@ -8,15 +8,21 @@ import os, sys
 import argparse
 import json
 import time
+import getpass
 
 
 start = time.time()
 parser = argparse.ArgumentParser(description='Run FM')
-parser.add_argument('--base_dir', type=str, nargs='?', default='/home/jj')  # /Users/jilljenn
-parser.add_argument('--truth_path', type=str, nargs='?', default='dataverse_files')  # code/sharedtask
+if getpass.getuser() == 'jj':
+    parser.add_argument('--base_dir', type=str, nargs='?', default='/home/jj')
+    parser.add_argument('--truth_path', type=str, nargs='?', default='dataverse_files')
+    parser.add_argument('--libfm', type=str, nargs='?', default='libfm')
+else:
+    parser.add_argument('--base_dir', type=str, nargs='?', default='/Users/jilljenn')
+    parser.add_argument('--truth_path', type=str, nargs='?', default='code/sharedtask')
+    parser.add_argument('--libfm', type=str, nargs='?', default='code/libfm')
 parser.add_argument('--logistic', type=bool, nargs='?', const=True, default=False)
-parser.add_argument('--libfm', type=str, nargs='?', default='libfm')  # code/libfm
-parser.add_argument('--dataset', type=str, nargs='?', default='last_fr_en')
+parser.add_argument('--dataset', type=str, nargs='?', default='first_fr_en')
 parser.add_argument('--iter', type=int, nargs='?', default=50)
 parser.add_argument('--d', type=int, nargs='?', default=20)
 options = parser.parse_args()
@@ -87,6 +93,14 @@ params = {
 auc_train = 0
 auc_valid = 0
 if options.logistic or options.d == 0:
+
+    save_npz('X_fm.npz', X_fulltrain)
+    np.save('y_fm.npy', y_fulltrain)
+    save_npz('X_train.npz', X_train)
+    save_npz('X_valid.npz', X_valid)
+    save_npz('X_test.npz', X_test)
+    np.save('y_test.npy', y_test)
+
     model = LogisticRegression()
     model.fit(X_fulltrain, y_fulltrain)
 
