@@ -1,4 +1,4 @@
-from scipy.sparse import coo_matrix, vstack, save_npz
+from scipy.sparse import coo_matrix, vstack, save_npz, load_npz, hstack, csr_matrix
 from sklearn.linear_model import LogisticRegression
 import numpy as np
 import pandas as pd
@@ -50,6 +50,10 @@ Xi_test = np.load('Xi_test.npy')
 Xv_test = np.load('Xv_test.npy')
 
 nb_fields = len(Xi_train[0])
+
+print('min', np.vstack((Xi_train, Xi_valid, Xi_test)).min(axis=0))
+print('max', np.vstack((Xi_train, Xi_valid, Xi_test)).max(axis=0))
+
 nb_features = int(1 + np.vstack((Xi_train, Xi_valid, Xi_test)).max())
 print(nb_features, 'features over', nb_fields, 'fields', time.time() - start)
 
@@ -90,15 +94,29 @@ params = {
     'k2': options.d
 }
 
+def right_pad(X, expected_size):
+    N, current_size = X.shape
+    return hstack((X, csr_matrix(np.zeros((N, expected_size - current_size)))))
+
+
 auc_train = 0
 auc_valid = 0
 if options.logistic or options.d == 0:
 
-    save_npz('X_fm.npz', X_fulltrain)
+    adj = load_npz('adj.npz')
+    nb_entities, _ = adj.shape
+    print(X_fulltrain.shape, type(X_fulltrain))
+    print(X_train.shape, type(X_train))
+    print(X_valid.shape, type(X_valid))
+    print(X_test.shape, type(X_test))
+
+    # sys.exit(0)
+
+    save_npz('X_fm.npz', right_pad(X_fulltrain, nb_entities))
     np.save('y_fm.npy', y_fulltrain)
-    save_npz('X_train.npz', X_train)
-    save_npz('X_valid.npz', X_valid)
-    save_npz('X_test.npz', X_test)
+    save_npz('X_train.npz', right_pad(X_train, nb_entities))
+    save_npz('X_valid.npz', right_pad(X_valid, nb_entities))
+    save_npz('X_test.npz', right_pad(X_test, nb_entities))
     np.save('y_test.npy', y_test)
 
     model = LogisticRegression()
