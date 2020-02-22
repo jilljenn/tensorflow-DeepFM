@@ -1,3 +1,8 @@
+2019:
+	time python fm.py --dataset duolingo2019_fr_en --iter 200
+	# time python fm.py --dataset duolingo2019_fr_en --iter 20
+	# time python fm.py --dataset duolingo2019_fr_en --logistic
+
 all:
 	time python dfm.py --dataset last_fr_en --iter 20 --fm
 	time python dfm.py --dataset last_fr_en --iter 20 --deep --fm

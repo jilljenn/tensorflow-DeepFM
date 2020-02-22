@@ -1,9 +1,11 @@
 from scipy.sparse import coo_matrix, vstack, save_npz, load_npz, hstack, csr_matrix
+from scipy.stats import sem, t
 from sklearn.linear_model import LogisticRegression
+from collections import defaultdict
 import numpy as np
 import pandas as pd
 import pywFM
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, ndcg_score
 import os, sys
 import argparse
 import json
@@ -11,12 +13,27 @@ import time
 import getpass
 
 
+def avgstd(l):
+    '''
+    Given a list of values, returns a 95% confidence interval
+    if the standard deviation is unknown.
+    '''
+    n = len(l)
+    mean = sum(l) / n
+    if n == 1:
+        return '%.3f' % round(mean, 3)
+    std_err = sem(l)
+    confidence = 0.95
+    h = std_err * t.ppf((1 + confidence) / 2, n - 1)
+    return '%.3f ± %.3f' % (round(mean, 3), round(h, 3))
+
+
 start = time.time()
 parser = argparse.ArgumentParser(description='Run FM')
-if getpass.getuser() == 'jj':
+if getpass.getuser() == 'jj':  # Was for RAIDEN
     parser.add_argument('--base_dir', type=str, nargs='?', default='/home/jj')
-    parser.add_argument('--truth_path', type=str, nargs='?', default='dataverse_files')
-    parser.add_argument('--libfm', type=str, nargs='?', default='libfm')
+    parser.add_argument('--truth_path', type=str, nargs='?', default='code/slam2018')
+    parser.add_argument('--libfm', type=str, nargs='?', default='code/ktm/libfm')
 else:
     parser.add_argument('--base_dir', type=str, nargs='?', default='/Users/jilljenn')
     parser.add_argument('--truth_path', type=str, nargs='?', default='code/sharedtask')
@@ -27,7 +44,7 @@ parser.add_argument('--iter', type=int, nargs='?', default=50)
 parser.add_argument('--d', type=int, nargs='?', default=20)
 options = parser.parse_args()
 
-os.environ['LIBFM_PATH'] = os.path.join(options.base_dir, options.libfm, 'bin')
+os.environ['LIBFM_PATH'] = os.path.join(options.base_dir, options.libfm, 'bin/')
 
 print('Dataset', options.dataset, time.time() - start)
 dataset_key = options.dataset[-5:]
@@ -77,7 +94,7 @@ else:
     X_fulltrain = vstack((X_train, X_valid))
     y_fulltrain = np.concatenate((y_train, y_valid))
 
-    df = pd.read_csv(os.path.join(options.base_dir, options.truth_path, 'data_{:s}/{:s}.slam.20171218.test.key'.format(dataset_key, dataset_key)),
+    df = pd.read_csv(os.path.join(options.base_dir, options.truth_path, 'data_{:s}/{:s}.slam.20190204.dev.key'.format(dataset_key, dataset_key)),
                      sep=' ', names=('key', 'outcome'))
     y_test = 1 - df['outcome']
 
@@ -119,15 +136,15 @@ if options.logistic or options.d == 0:
     save_npz('X_test.npz', right_pad(X_test, nb_entities))
     np.save('y_test.npy', y_test)
 
-    model = LogisticRegression()
+    model = LogisticRegression(solver='liblinear')
     model.fit(X_fulltrain, y_fulltrain)
 
     y_pred_train = model.predict_proba(X_train)[:, 1]
-    y_pred_valid = model.predict_proba(X_valid)[:, 1]
+    # y_pred_valid = model.predict_proba(X_valid)[:, 1]
     y_pred_test = model.predict_proba(X_test)[:, 1]
 
     auc_train = roc_auc_score(y_train, y_pred_train)
-    auc_valid = roc_auc_score(y_valid, y_pred_valid)
+    # auc_valid = roc_auc_score(y_valid, y_pred_valid)
 else:
     # init a FM model
     fm = pywFM.FM(**params)
@@ -138,7 +155,37 @@ else:
 
 # evaluate a trained model
 auc_test = roc_auc_score(y_test, y_pred_test)
+
+predictions_per_user = defaultdict(lambda: defaultdict(list))
+metrics = defaultdict(list)
+
+with open('test_user_ids.txt') as f:
+    test_user_ids = f.read().splitlines()
+
+for user, pred, true in zip(test_user_ids, y_pred_test, y_test):
+    predictions_per_user[user]['pred'].append(pred)
+    predictions_per_user[user]['y'].append(true)
+    predictions_per_user[user]['opp_pred'].append(1 - pred)
+    predictions_per_user[user]['opp_y'].append(1 - true)
+    
+for user in predictions_per_user:
+    this_pred = predictions_per_user[user]['pred']
+    this_true = predictions_per_user[user]['y']
+    opp_this_pred = predictions_per_user[user]['opp_pred']
+    opp_this_true = predictions_per_user[user]['opp_y']
+    if len(this_pred) > 1:
+        metrics['ndcg'].append(ndcg_score([this_true], [this_pred]))
+        metrics['ndcg@10'].append(ndcg_score([this_true], [this_pred], k=10))
+        metrics['ndcg-'].append(ndcg_score([opp_this_true], [opp_this_pred]))
+        metrics['ndcg@10-'].append(ndcg_score([opp_this_true], [opp_this_pred], k=10))
+
+
 print('train auc={:f} valid auc={:f} test auc={:f}'.format(auc_train, auc_valid, auc_test))
+print('ndcg', avgstd(metrics['ndcg']))
+print('ndcg@10', avgstd(metrics['ndcg@10']))
+print('ndcg-', avgstd(metrics['ndcg-']))
+print('ndcg@10-', avgstd(metrics['ndcg@10-']))
+
 
 # save config
 config = {
