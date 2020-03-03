@@ -1,7 +1,7 @@
 from scipy.sparse import coo_matrix, vstack, save_npz, load_npz, hstack, csr_matrix
 from scipy.stats import sem, t
-from sklearn.linear_model import LogisticRegression
-from collections import defaultdict
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from collections import Counter, defaultdict
 import numpy as np
 import pandas as pd
 import pywFM
@@ -39,9 +39,11 @@ else:
     parser.add_argument('--truth_path', type=str, nargs='?', default='code/sharedtask')
     parser.add_argument('--libfm', type=str, nargs='?', default='code/libfm')
 parser.add_argument('--logistic', type=bool, nargs='?', const=True, default=False)
+parser.add_argument('--countries', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--dataset', type=str, nargs='?', default='first_fr_en')
-parser.add_argument('--iter', type=int, nargs='?', default=50)
+parser.add_argument('--iter', type=int, nargs='?', default=20)
 parser.add_argument('--d', type=int, nargs='?', default=20)
+parser.add_argument('--ver', type=int, nargs='?', default=0)
 options = parser.parse_args()
 
 os.environ['LIBFM_PATH'] = os.path.join(options.base_dir, options.libfm, 'bin/')
@@ -53,18 +55,26 @@ os.chdir(os.path.join('data', options.dataset))  # Move to dataset folder
 start = time.time()
 
 
-Xi_train = np.load('Xi_train.npy')
-Xv_train = np.load('Xv_train.npy')
+slicing = [
+    [0, 1],
+    [0, 1, 2],
+    [0, 1, 3],
+    [0, 1, 4],
+    [0, 1, 2, 3, 4]
+][options.ver]
+
+Xi_train = np.load('Xi_train.npy')[:, slicing]
+Xv_train = np.load('Xv_train.npy')[:, slicing]
 train_samples = len(Xi_train)
 y_train = np.load('y_train.npy').astype(np.int32)
 
-Xi_valid = np.load('Xi_valid.npy')
-Xv_valid = np.load('Xv_valid.npy')
+Xi_valid = np.load('Xi_valid.npy')[:, slicing]
+Xv_valid = np.load('Xv_valid.npy')[:, slicing]
 valid_samples = len(Xi_valid)
 y_valid = np.load('y_valid.npy').astype(np.int32)
 
-Xi_test = np.load('Xi_test.npy')
-Xv_test = np.load('Xv_test.npy')
+Xi_test = np.load('Xi_test.npy')[:, slicing]
+Xv_test = np.load('Xv_test.npy')[:, slicing]
 
 nb_fields = len(Xi_train[0])
 
@@ -74,16 +84,23 @@ print('max', np.vstack((Xi_train, Xi_valid, Xi_test)).max(axis=0))
 nb_features = int(1 + np.vstack((Xi_train, Xi_valid, Xi_test)).max())
 print(nb_features, 'features over', nb_fields, 'fields', time.time() - start)
 
-def lol_to_csr(Xi, Xv):
+def lol_to_csr(Xi, Xv, bonus=True):
     nb_samples, nb_fields = Xi.shape
     rows = np.repeat(np.arange(nb_samples), nb_fields)
     cols = Xi.flatten()
     data = Xv.flatten()
-    return coo_matrix((data, (rows, cols)), shape=(nb_samples, nb_features)).tocsr()
+    X = coo_matrix((data, (rows, cols)), shape=(nb_samples, nb_features)).tocsr()
+    if bonus:
+        X_bonus = adj[Xi[:, 0]]  # Extra features per user
+        print('Extra feat. (countries)', Counter(X_bonus.sum(axis=1).A1))
+        return hstack((X, X_bonus))
+    
+    return X
 
-X_train = lol_to_csr(Xi_train, Xv_train)
-X_valid = lol_to_csr(Xi_valid, Xv_valid)
-X_test = lol_to_csr(Xi_test, Xv_test)
+adj = load_npz('adj.npz')
+X_train = lol_to_csr(Xi_train, Xv_train, options.countries)
+X_valid = lol_to_csr(Xi_valid, Xv_valid, options.countries)
+X_test = lol_to_csr(Xi_test, Xv_test, options.countries)
 print('Finished converting data', time.time() - ckpt)
 
 if options.dataset == 'dummy':
@@ -94,13 +111,15 @@ else:
     X_fulltrain = vstack((X_train, X_valid))
     y_fulltrain = np.concatenate((y_train, y_valid))
 
-    df = pd.read_csv(os.path.join(options.base_dir, options.truth_path, 'data_{:s}/{:s}.slam.20190204.dev.key'.format(dataset_key, dataset_key)),
+    df = pd.read_csv(os.path.join(options.base_dir, options.truth_path, 'data_{:s}/{:s}.slam.20190204.test.key'.format(dataset_key, dataset_key)),
                      sep=' ', names=('key', 'outcome'))
     y_test = 1 - df['outcome']
 
 # nb_features = (1 + np.array(Xi_train + Xi_valid).max(axis=0)).sum()  # Old, bad version
 # nb_features = int(1 + np.array(Xi_train + Xi_valid + Xi_test).max())
 # print(nb_features, 'features over', nb_fields, 'fields', time.time() - start)
+
+print(Counter(X_fulltrain.sum(axis=1).A1))
 
 # params
 params = {
@@ -116,11 +135,26 @@ def right_pad(X, expected_size):
     return hstack((X, csr_matrix(np.zeros((N, expected_size - current_size)))))
 
 
+print(X_fulltrain.shape, 'fully')
+print('before', Counter(X_fulltrain.sum(axis=0).A1)[0], 'are useless')
+X_fulltrain_countries = adj[np.concatenate((Xi_train[:, 0], Xi_valid[:, 0]))]
+X_test_countries = adj[Xi_test[:, 0]]
+print('int', X_fulltrain_countries.shape)
+print('int', Counter(X_fulltrain_countries.sum(axis=1).A1))
+#X_fulltrain = hstack((X_fulltrain, X_fulltrain_countries))
+#X_test = hstack((X_test, X_test_countries))
+
+
+save_npz('X_fm.npz', vstack((X_fulltrain, X_test)))
+print('final', vstack((X_fulltrain, X_test)).shape)
+np.save('y_fm.npy', np.concatenate((y_fulltrain, y_test)))
+
+
 auc_train = 0
 auc_valid = 0
 if options.logistic or options.d == 0:
 
-    adj = load_npz('adj.npz')
+    
     nb_entities, _ = adj.shape
     print(X_fulltrain.shape, type(X_fulltrain))
     print(X_train.shape, type(X_train))
@@ -128,16 +162,16 @@ if options.logistic or options.d == 0:
     print(X_test.shape, type(X_test))
 
     # sys.exit(0)
-
-    save_npz('X_fm.npz', right_pad(X_fulltrain, nb_entities))
-    np.save('y_fm.npy', y_fulltrain)
+    """
     save_npz('X_train.npz', right_pad(X_train, nb_entities))
     save_npz('X_valid.npz', right_pad(X_valid, nb_entities))
     save_npz('X_test.npz', right_pad(X_test, nb_entities))
     np.save('y_test.npy', y_test)
+    """
 
     model = LogisticRegression(solver='liblinear')
     model.fit(X_fulltrain, y_fulltrain)
+    # print('Best', model.C_)
 
     y_pred_train = model.predict_proba(X_train)[:, 1]
     # y_pred_valid = model.predict_proba(X_valid)[:, 1]

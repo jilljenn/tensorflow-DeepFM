@@ -1,7 +1,11 @@
 2019:
-	time python fm.py --dataset duolingo2019_fr_en --iter 200
-	# time python fm.py --dataset duolingo2019_fr_en --iter 20
-	# time python fm.py --dataset duolingo2019_fr_en --logistic
+	# time python fm.py --dataset duolingo2019_fr_en --iter 200
+	# time python fm.py --dataset duolingo2019_fr_en --ver 3 --logistic
+	time python fm.py --dataset duolingo2019_fr_en --ver 3 --iter 100 --d 1
+	# time python fm.py --dataset duolingo2019_fr_en --ver 3 --iter 100 --d 2
+	# time python fm.py --dataset simplest_fr_en --logistic
+	# time python fm.py --dataset simplest_fr_en --logistic --countries
+	# time python fm.py --dataset simplest_fr_en --iter 20
 
 all:
 	time python dfm.py --dataset last_fr_en --iter 20 --fm
